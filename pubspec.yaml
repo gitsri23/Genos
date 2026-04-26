@@ -1,5 +1,5 @@
 name: pro_video_player
-description: A professional glassmorphic video player.
+description: Premium glassmorphic video player with iOS features.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -11,15 +11,22 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.6
   
-  # Media Kit Packages (Updated Versions)
+  # Media Player Engine
   media_kit: ^1.1.11
   media_kit_video: ^1.2.4
-  media_kit_libs_video: ^1.0.7  # Downgraded to the stable version to fix the CI error
+  media_kit_libs_video: ^1.0.7
   
-  # Utilities
+  # Premium UI Utilities (New for high-end feel)
+  premium_glass: # Mee previous code use chestham
+  
+  # Core Utility Packages (Added/Updated)
   permission_handler: ^11.3.1
   path: ^1.9.0
   device_info_plus: ^10.1.0
+  
+  # Advanced Video Features (New for your requests)
+  auto_orientation: ^3.0.0  # Professional Orientation switching
+  flutter_video_info: ^2.0.0 # Subtitle & Format info (professional standard)
 
 dev_dependencies:
   flutter_test:
