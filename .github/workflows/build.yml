@@ -9,12 +9,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           
       - name: Install Dependencies
         run: flutter pub get
+
+      # IDHI CRITICAL STEP: Ikkada patha errors unna android folder delete ayyi, 
+      # fresh flutter v2 architecture automatic ga create avuthundi.
+      - name: Auto-Fix Android Architecture & Add Permissions
+        run: |
+          rm -rf android
+          flutter create . --platforms android
+          sed -i 's/<\/manifest>//g' android/app/src/main/AndroidManifest.xml
+          echo '    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>' >> android/app/src/main/AndroidManifest.xml
+          echo '    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>' >> android/app/src/main/AndroidManifest.xml
+          echo '    <uses-permission android:name="android.permission.INTERNET"/>' >> android/app/src/main/AndroidManifest.xml
+          echo '</manifest>' >> android/app/src/main/AndroidManifest.xml
 
       - name: Build APK
         run: flutter build apk --release
