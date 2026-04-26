@@ -1,49 +1,51 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
-import 'package:permission_handler/permission_handler.dart';
-import 'package:device_info_plus/device_info_plus.dart';
 
-class VideoScanner {
-  static Future<Map<String, List<File>>> getVideosGroupedByFolder() async {
-    Map<String, List<File>> groupedVideos = {};
-    
-    // 1. Android version batti exact permission adagali (Android 13+ uses .videos)
-    final androidInfo = await DeviceInfoPlugin().androidInfo;
-    if (androidInfo.version.sdkInt >= 33) {
-      var status = await Permission.videos.request();
-      if (!status.isGranted) return groupedVideos; // Permission ivvakapothe empty list
-    } else {
-      var status = await Permission.storage.request();
-      if (!status.isGranted) return groupedVideos;
-    }
+// Clear, direct absolute imports
+import 'package:pro_video_player/core/theme/premium_glass.dart';
+import 'package:pro_video_player/features/video_player/views/pro_video_player.dart';
 
-    Directory root = Directory('/storage/emulated/0/'); 
-    final videoExtensions = ['.mp4', '.mkv', '.avi', '.mov', '.flv'];
+class FolderVideosScreen extends StatelessWidget {
+  final String folderName;
+  final List<File> videos;
 
-    if (!await root.exists()) return groupedVideos;
+  const FolderVideosScreen({Key? key, required this.folderName, required this.videos}) : super(key: key);
 
-    try {
-      // 2. CRITICAL FIX: Error vasthe ignore chesi next file ki vellela async list() vadanu
-      await for (var entity in root.list(recursive: true, followLinks: false).handleError((e) {
-        // System / locked folders deggara permission lekapothe ignore chesthundi
-        return; 
-      })) {
-        if (entity is File) {
-          String extension = p.extension(entity.path).toLowerCase();
-          if (videoExtensions.contains(extension)) {
-            String folderName = p.basename(entity.parent.path);
-            
-            if (!groupedVideos.containsKey(folderName)) {
-              groupedVideos[folderName] = [];
-            }
-            groupedVideos[folderName]!.add(entity);
-          }
-        }
-      }
-    } catch (e) {
-      print("Global Scan Error: $e");
-    }
-    
-    return groupedVideos;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: Text(folderName, style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.black,
+        leading: const BackButton(color: Colors.white),
+      ),
+      body: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: videos.length,
+        itemBuilder: (context, index) {
+          File video = videos[index];
+          String fileName = p.basename(video.path);
+          
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: PremiumGlass(
+              borderRadius: 15,
+              padding: const EdgeInsets.all(4),
+              child: ListTile(
+                leading: const Icon(Icons.play_circle_outline, color: Colors.white70, size: 35),
+                title: Text(fileName, style: const TextStyle(color: Colors.white, fontSize: 15), maxLines: 2),
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => ProVideoPlayerScreen(videoPath: video.path),
+                  ));
+                },
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 }
