@@ -16,9 +16,11 @@ dependencies:
   media_kit_video: ^1.2.4
   media_kit_libs_video: ^1.0.7
   
-  # Core Utility Packages
+  # New Package for INSTANT Loading & Thumbnails
+  photo_manager: ^3.3.0
+  
+  # Keep these
   permission_handler: ^11.3.1
-  path: ^1.9.0
   device_info_plus: ^10.1.0
 
 dev_dependencies:
