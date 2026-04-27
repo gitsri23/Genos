@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 // ─────────────────────────────────────────
-//  LIQUID GLASS BUTTON  — iOS 26 style
+//  LIQUID GLASS BUTTON  — translucent, video shows through
 // ─────────────────────────────────────────
 
 class LiquidGlassButton extends StatefulWidget {
@@ -30,8 +30,8 @@ class _LiquidGlassButtonState extends State<LiquidGlassButton>
   void initState() {
     super.initState();
     _press = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 120));
-    _scale = Tween(begin: 1.0, end: 0.91).animate(
+        vsync: this, duration: const Duration(milliseconds: 100));
+    _scale = Tween(begin: 1.0, end: 0.88).animate(
         CurvedAnimation(parent: _press, curve: Curves.easeInOut));
   }
 
@@ -45,8 +45,14 @@ class _LiquidGlassButtonState extends State<LiquidGlassButton>
   Widget build(BuildContext context) {
     final s = widget.size;
     return GestureDetector(
-      onTapDown: (_) { HapticFeedback.lightImpact(); _press.forward(); },
-      onTapUp: (_) { _press.reverse(); widget.onTap?.call(); },
+      onTapDown: (_) {
+        HapticFeedback.lightImpact();
+        _press.forward();
+      },
+      onTapUp: (_) {
+        _press.reverse();
+        widget.onTap?.call();
+      },
       onTapCancel: () => _press.reverse(),
       child: ScaleTransition(
         scale: _scale,
@@ -54,13 +60,15 @@ class _LiquidGlassButtonState extends State<LiquidGlassButton>
           width: s,
           height: s,
           child: CustomPaint(
-            painter: _LiquidGlassPainter(size: s),
+            painter: _GlassBallPainter(size: s),
             child: Center(
               child: Icon(
                 widget.icon,
                 color: Colors.white,
                 size: s * 0.38,
-                shadows: const [Shadow(color: Colors.black38, blurRadius: 4)],
+                shadows: const [
+                  Shadow(color: Colors.black54, blurRadius: 6),
+                ],
               ),
             ),
           ),
@@ -70,108 +78,104 @@ class _LiquidGlassButtonState extends State<LiquidGlassButton>
   }
 }
 
-class _LiquidGlassPainter extends CustomPainter {
+class _GlassBallPainter extends CustomPainter {
   final double size;
-  _LiquidGlassPainter({required this.size});
+  _GlassBallPainter({required this.size});
 
   @override
   void paint(Canvas canvas, Size s) {
-    final center = Offset(s.width / 2, s.height / 2);
+    final c = Offset(s.width / 2, s.height / 2);
     final r = s.width / 2;
 
-    // 1. Dark base sphere
+    // 1. Translucent base — video shows through (like original UI)
     canvas.drawCircle(
-      center,
+      c,
       r,
       Paint()
         ..shader = RadialGradient(
-          center: const Alignment(0.2, 0.2),
-          radius: 0.85,
-          colors: const [Color(0xFF4A4A4A), Color(0xFF1A1A1A), Color(0xFF0A0A0A)],
-          stops: const [0.0, 0.55, 1.0],
-        ).createShader(Rect.fromCircle(center: center, radius: r)),
+          center: const Alignment(0.15, 0.15),
+          radius: 1.0,
+          colors: [
+            const Color(0x88555555), // lighter center
+            const Color(0xBB222222), // darker edge
+          ],
+          stops: const [0.0, 1.0],
+        ).createShader(Rect.fromCircle(center: c, radius: r)),
     );
 
-    // 2. Outer rim sweep
+    // 2. Top-left specular — main glass shine
     canvas.drawCircle(
-      center,
-      r - 0.6,
+      c,
+      r,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-0.4, -0.5),
+          radius: 0.65,
+          colors: [
+            Colors.white.withOpacity(0.40),
+            Colors.white.withOpacity(0.10),
+            Colors.white.withOpacity(0.0),
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ).createShader(Rect.fromCircle(center: c, radius: r)),
+    );
+
+    // 3. Small sharp hotspot glint
+    final hot = Offset(c.dx - r * 0.26, c.dy - r * 0.30);
+    canvas.drawCircle(
+      hot,
+      r * 0.22,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [
+            Colors.white.withOpacity(0.55),
+            Colors.white.withOpacity(0.0),
+          ],
+        ).createShader(Rect.fromCircle(center: hot, radius: r * 0.22)),
+    );
+
+    // 4. Bottom refraction glow
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(0.1, 0.80),
+          radius: 0.45,
+          colors: [
+            Colors.white.withOpacity(0.15),
+            Colors.white.withOpacity(0.0),
+          ],
+        ).createShader(Rect.fromCircle(center: c, radius: r)),
+    );
+
+    // 5. Outer rim light
+    canvas.drawCircle(
+      c,
+      r - 0.5,
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2
+        ..strokeWidth = 1.0
         ..shader = SweepGradient(
           colors: [
             Colors.white.withOpacity(0.0),
-            Colors.white.withOpacity(0.35),
+            Colors.white.withOpacity(0.30),
             Colors.white.withOpacity(0.0),
-            Colors.white.withOpacity(0.12),
+            Colors.white.withOpacity(0.08),
             Colors.white.withOpacity(0.0),
           ],
-          stops: const [0.0, 0.2, 0.5, 0.75, 1.0],
+          stops: const [0.0, 0.18, 0.5, 0.75, 1.0],
           startAngle: -1.2,
-        ).createShader(Rect.fromCircle(center: center, radius: r)),
-    );
-
-    // 3. Top-left specular highlight
-    canvas.drawCircle(
-      center,
-      r,
-      Paint()
-        ..shader = RadialGradient(
-          center: const Alignment(-0.45, -0.55),
-          radius: 0.55,
-          colors: [
-            Colors.white.withOpacity(0.55),
-            Colors.white.withOpacity(0.18),
-            Colors.white.withOpacity(0.0),
-          ],
-          stops: const [0.0, 0.45, 1.0],
-        ).createShader(Rect.fromCircle(center: center, radius: r)),
-    );
-
-    // 4. Sharp hotspot glint
-    final hotspot = Offset(center.dx - r * 0.28, center.dy - r * 0.32);
-    canvas.drawCircle(
-      hotspot,
-      r * 0.28,
-      Paint()
-        ..shader = RadialGradient(
-          colors: [Colors.white.withOpacity(0.70), Colors.white.withOpacity(0.0)],
-        ).createShader(Rect.fromCircle(center: hotspot, radius: r * 0.3)),
-    );
-
-    // 5. Bottom refraction glow
-    canvas.drawCircle(
-      center,
-      r,
-      Paint()
-        ..shader = RadialGradient(
-          center: const Alignment(0.1, 0.75),
-          radius: 0.5,
-          colors: [Colors.white.withOpacity(0.20), Colors.white.withOpacity(0.0)],
-        ).createShader(Rect.fromCircle(center: center, radius: r)),
-    );
-
-    // 6. Inner shadow ring (depth)
-    canvas.drawCircle(
-      center,
-      r - r * 0.04,
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = r * 0.08
-        ..shader = RadialGradient(
-          colors: [Colors.transparent, Colors.black.withOpacity(0.45)],
-          stops: const [0.72, 1.0],
-        ).createShader(Rect.fromCircle(center: center, radius: r)),
+        ).createShader(Rect.fromCircle(center: c, radius: r)),
     );
   }
 
   @override
-  bool shouldRepaint(_LiquidGlassPainter old) => old.size != size;
+  bool shouldRepaint(_GlassBallPainter old) => old.size != size;
 }
 
 // ─────────────────────────────────────────
-//  LIQUID GLASS PANEL  — for control bars
+//  LIQUID GLASS PANEL  — seek bar container
 // ─────────────────────────────────────────
 
 class LiquidGlassPanel extends StatelessWidget {
@@ -201,29 +205,28 @@ class _PanelPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius));
+    final rect =
+        RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius));
 
-    // Base gradient
+    // Base — semi-transparent dark, not fully opaque
     canvas.drawRRect(
       rect,
-      Paint()
-        ..shader = LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: const [Color(0xFF3A3A3A), Color(0xFF111111)],
-        ).createShader(Offset.zero & size),
+      Paint()..color = const Color(0xCC1A1A1A),
     );
 
     // Top shine strip
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-          Rect.fromLTWH(0, 0, size.width, size.height * 0.45),
+          Rect.fromLTWH(0, 0, size.width, size.height * 0.5),
           Radius.circular(radius)),
       Paint()
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.white.withOpacity(0.18), Colors.white.withOpacity(0.0)],
+          colors: [
+            Colors.white.withOpacity(0.12),
+            Colors.white.withOpacity(0.0),
+          ],
         ).createShader(Offset.zero & size),
     );
 
@@ -233,7 +236,7 @@ class _PanelPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 0.8
-        ..color = Colors.white.withOpacity(0.15),
+        ..color = Colors.white.withOpacity(0.18),
     );
   }
 
